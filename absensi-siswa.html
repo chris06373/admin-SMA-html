@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Portal Siswa - Login Lokasi, Histori Absensi & Rekap Nilai</title>
+  <title>Portal Siswa - Absensi 1x, Login Rekap Nilai & Histori</title>
   <style>
     :root {
       --primary: #1d4ed8;
@@ -56,8 +56,8 @@
     .card h2 { font-size: 1.05rem; }
     .desc { font-size: 0.83rem; color: var(--muted); margin-bottom: 12px; }
 
-    .login-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
-    .form-group { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 210px; }
+    .access-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
+    .form-group { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 220px; }
     .form-group label { font-size: 0.78rem; font-weight: 600; color: var(--muted); }
     input, select {
       padding: 8px 11px; border: 1px solid var(--border); border-radius: 8px;
@@ -112,8 +112,8 @@
     <!-- Header Navigasi -->
     <div class="top-header no-print">
       <div class="brand">
-        <h1>🎓 Portal Siswa — Absensi, Histori & Rekap Nilai</h1>
-        <p>Login sesuai titik lokasi Admin • Histori absensi yang sudah tercatat & rekap nilai PDF</p>
+        <h1>🎓 Portal Siswa — Absensi Mandiri & Rekap Nilai</h1>
+        <p>Tombol hijau khusus absensi (maksimal 1x/hari sesuai lokasi Admin) • Tombol login untuk lihat nilai & histori</p>
       </div>
       <div class="header-actions">
         <a href="index.html" class="btn btn-outline">← Beranda</a>
@@ -127,29 +127,31 @@
       <p id="printStudentMeta">Siswa: - | NISN: - | Kelas: -</p>
     </div>
 
-    <!-- 1. Login Siswa & Validasi Titik Lokasi Admin -->
+    <!-- 1. Akses Absensi (Tombol Hijau) & Login Rekap Nilai (Tombol Login) -->
     <section class="card no-print">
       <div class="card-header">
-        <h2>1. Login Siswa & Absensi Berbasis Lokasi</h2>
-        <span id="activeStudentBadge" class="badge badge-blue">Belum Login</span>
+        <h2>1. Absensi Mandiri (1x / Hari) & Login Rekap Nilai</h2>
+        <span id="sessionBadge" class="badge badge-blue">Belum Login</span>
       </div>
       <p class="desc">
-        Masukkan NISN siswa aktif (contoh: <code>NSMA-001</code> atau <code>NSMA-002</code>). Login dan absensi hanya diizinkan jika posisi Anda berada dalam radius titik lokasi yang ditentukan Admin.
+        Masukkan NISN siswa aktif (contoh: <code>NSMA-001</code> atau <code>NSMA-002</code>). Klik tombol hijau <strong>Absen (GPS)</strong> hanya untuk absensi (1x per hari dalam radius lokasi Admin), atau klik <strong>Login Lihat Nilai</strong> untuk membuka rekap nilai & histori absensi.
       </p>
 
-      <div class="login-row">
+      <div class="access-row">
         <div class="form-group">
           <label>NISN Siswa</label>
-          <input type="text" id="nisnInput" placeholder="Masukkan NISN (cth: NSMA-001)" />
+          <input type="text" id="nisnInput" placeholder="Masukkan NISN (cth: NSMA-001)" oninput="refreshAbsenButtonState()" />
         </div>
-        <button class="btn btn-success" onclick="prosesLoginSiswa(false)">Login & Absen (GPS)</button>
+        <button class="btn btn-success" id="btnAbsenHijau" onclick="prosesAbsenSaja(false)">✅ Absen (GPS)</button>
+        <button class="btn btn-primary" id="btnLoginNilai" onclick="prosesLoginLihatNilai()">🔐 Login Lihat Nilai</button>
+        <button class="btn btn-warning" onclick="prosesAbsenSaja(true)">Simulasi Di Luar Lokasi</button>
       </div>
 
       <div id="infoLokasiTarget" class="status-box"></div>
-      <div id="hasilLogin" class="status-box">Silakan masukkan NISN untuk login, melihat histori absensi yang sudah tercatat, dan mengecek rekap nilai.</div>
+      <div id="hasilAkses" class="status-box">Silakan masukkan NISN untuk absen atau login melihat rekap nilai.</div>
     </section>
 
-    <!-- 2. Histori Absensi (Hanya Saat Sudah Absen) + Pencarian + First & Last -->
+    <!-- 2. Histori Absensi (Hanya Data Yang Sudah Absen) + Pencarian + First & Last -->
     <section class="card no-print">
       <div class="card-header">
         <h2>2. Histori Absensi Siswa (Data Sudah Absen)</h2>
@@ -241,7 +243,7 @@
       lokasiAdmin: { nama: 'SMA Negeri Contoh - Kampus Utama', lat: -6.175392, lng: 106.827153, radiusMeter: 150 }
     };
 
-    let currentStudent = null;
+    let loggedInStudent = null;
     let currentPage = 1;
 
     function getDb() {
@@ -257,6 +259,36 @@
 
     function saveDb(db) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+    }
+
+    function getTodayStr() {
+      return new Date().toISOString().slice(0, 10);
+    }
+
+    function sudahAbsenHariIni(db, nisn) {
+      const today = getTodayStr();
+      return db.absensi.some(a =>
+        String(a.nisn || '').toLowerCase() === String(nisn || '').toLowerCase() &&
+        a.tanggal === today
+      );
+    }
+
+    function refreshAbsenButtonState() {
+      const nisn = document.getElementById('nisnInput').value.trim();
+      const btnHijau = document.getElementById('btnAbsenHijau');
+      if (!nisn) {
+        btnHijau.disabled = false;
+        btnHijau.textContent = '✅ Absen (GPS)';
+        return;
+      }
+      const db = getDb();
+      if (sudahAbsenHariIni(db, nisn)) {
+        btnHijau.disabled = true;
+        btnHijau.textContent = '✅ Sudah Absen Hari Ini';
+      } else {
+        btnHijau.disabled = false;
+        btnHijau.textContent = '✅ Absen (GPS)';
+      }
     }
 
     function renderInfoLokasi() {
@@ -276,69 +308,73 @@
       return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     }
 
-    function prosesLoginSiswa(simulasiLuar) {
+    /* Tombol Hijau: Khusus Absensi (1x per hari sesuai lokasi Admin) */
+    function prosesAbsenSaja(simulasiLuar) {
       const db = getDb();
       const nisn = document.getElementById('nisnInput').value.trim();
-      const out = document.getElementById('hasilLogin');
+      const out = document.getElementById('hasilAkses');
       const s = db.siswa.find(x => x.nisn.toLowerCase() === nisn.toLowerCase());
 
       if (!s) {
-        out.innerHTML = `<span class="badge badge-red">Login Gagal</span><br/>NISN <strong>${nisn || '-'}</strong> tidak terdaftar.`;
+        out.innerHTML = `<span class="badge badge-red">Absen Gagal</span><br/>NISN <strong>${nisn || '-'}</strong> tidak terdaftar.`;
         return;
       }
       if (s.status !== 'Siswa Aktif') {
         out.innerHTML = `<span class="badge badge-yellow">Akses Ditolak</span><br/>Status akun bukan Siswa Aktif.`;
         return;
       }
+      if (sudahAbsenHariIni(db, s.nisn)) {
+        refreshAbsenButtonState();
+        out.innerHTML = `<span class="badge badge-yellow">Batas Absen Tercapai</span><br/>Siswa <strong>${s.nama}</strong> (${s.nisn}) sudah absen hari ini (${getTodayStr()}). Absensi hanya bisa dilakukan 1 kali per hari.`;
+        return;
+      }
 
-      const verifikasiLokasi = (uLat, uLng) => {
-        const target = db.lokasiAdmin;
+      const verifikasiDanCatat = (uLat, uLng) => {
+        const latestDb = getDb();
+        if (sudahAbsenHariIni(latestDb, s.nisn)) {
+          refreshAbsenButtonState();
+          out.innerHTML = `<span class="badge badge-yellow">Batas Absen Tercapai</span><br/>Siswa <strong>${s.nama}</strong> (${s.nisn}) sudah tercatat absen hari ini.`;
+          return;
+        }
+
+        const target = latestDb.lokasiAdmin;
         const jarak = Math.round(jarakMeter(uLat, uLng, target.lat, target.lng));
 
         if (jarak > target.radiusMeter) {
           out.innerHTML = `
-            <span class="badge badge-red">Login & Absen Ditolak</span><br/>
+            <span class="badge badge-red">Absen Ditolak</span><br/>
             Halo <strong>${s.nama}</strong> (${s.nisn}), jarak Anda <strong>${jarak} meter</strong> dari <em>${target.nama}</em>.
-            Login hanya diizinkan dalam radius <strong>${target.radiusMeter} meter</strong>.
+            Absensi hanya diizinkan dalam radius <strong>${target.radiusMeter} meter</strong>.
           `;
           return;
         }
 
-        currentStudent = s;
-        currentPage = 1;
-        document.getElementById('activeStudentBadge').textContent = `${s.nama} (${s.nisn})`;
-        document.getElementById('activeStudentBadge').className = 'badge badge-green';
-
-        const today = new Date().toISOString().slice(0, 10);
-        const sudah = db.absensi.some(a => a.nisn === s.nisn && a.tanggal === today && a.sumber === 'Login Siswa');
-        let pesanAbsen = 'Absensi hari ini sudah tercatat sebelumnya.';
-        if (!sudah) {
-          db.absensi.unshift({
-            id: Date.now(),
-            tanggal: today,
-            nisn: s.nisn,
-            nama: s.nama,
-            kelas: s.kelas,
-            mapel: 'Absensi Mandiri (Login Siswa)',
-            status: 'Hadir',
-            sumber: 'Login Siswa'
-          });
-          saveDb(db);
-          pesanAbsen = 'Kehadiran hari ini berhasil dicatat ke database histori absensi.';
-        }
+        latestDb.absensi.unshift({
+          id: Date.now(),
+          tanggal: getTodayStr(),
+          nisn: s.nisn,
+          nama: s.nama,
+          kelas: s.kelas,
+          mapel: 'Absensi Mandiri Siswa',
+          status: 'Hadir',
+          sumber: 'Tombol Absen Siswa'
+        });
+        saveDb(latestDb);
+        refreshAbsenButtonState();
 
         out.innerHTML = `
-          <span class="badge badge-green">Login & Absen Berhasil</span><br/>
-          Selamat datang, <strong>${s.nama}</strong> (${s.kelas}) • Jarak: <strong>${jarak} meter</strong> (radius ${target.radiusMeter} m).<br/>
-          ${pesanAbsen}
+          <span class="badge badge-green">Absen Berhasil (1/1 Hari Ini)</span><br/>
+          <strong>${s.nama}</strong> (${s.nisn}) tercatat <strong>Hadir</strong> • Jarak: <strong>${jarak} meter</strong> (radius ${target.radiusMeter} m).
+          Klik <strong>Login Lihat Nilai</strong> untuk melihat rekap nilai & histori absensi.
         `;
 
-        renderHistoriSiswa();
-        renderNilaiSiswa();
+        if (loggedInStudent && loggedInStudent.nisn.toLowerCase() === s.nisn.toLowerCase()) {
+          renderHistoriSiswa();
+        }
       };
 
       if (simulasiLuar) {
-        verifikasiLokasi(db.lokasiAdmin.lat + 0.05, db.lokasiAdmin.lng + 0.05);
+        verifikasiDanCatat(db.lokasiAdmin.lat + 0.05, db.lokasiAdmin.lng + 0.05);
         return;
       }
 
@@ -347,9 +383,9 @@
         return;
       }
 
-      out.innerHTML = `Memeriksa koordinat GPS perangkat Anda...`;
+      out.innerHTML = `Memeriksa koordinat GPS perangkat Anda untuk absensi...`;
       navigator.geolocation.getCurrentPosition(
-        pos => verifikasiLokasi(pos.coords.latitude, pos.coords.longitude),
+        pos => verifikasiDanCatat(pos.coords.latitude, pos.coords.longitude),
         err => {
           out.innerHTML = `<span class="badge badge-red">GPS Gagal</span><br/>${err.message}. Pastikan izin lokasi diaktifkan.`;
         },
@@ -357,15 +393,48 @@
       );
     }
 
+    /* Tombol Login: Khusus masuk melihat Rekap Nilai & Histori Absensi */
+    function prosesLoginLihatNilai() {
+      const db = getDb();
+      const nisn = document.getElementById('nisnInput').value.trim();
+      const out = document.getElementById('hasilAkses');
+      const badge = document.getElementById('sessionBadge');
+
+      const s = db.siswa.find(x => x.nisn.toLowerCase() === nisn.toLowerCase());
+      if (!s) {
+        loggedInStudent = null;
+        badge.textContent = 'Belum Login';
+        badge.className = 'badge badge-blue';
+        out.innerHTML = `<span class="badge badge-red">Login Gagal</span><br/>NISN <strong>${nisn || '-'}</strong> tidak terdaftar.`;
+        renderHistoriSiswa();
+        renderNilaiSiswa();
+        return;
+      }
+
+      loggedInStudent = s;
+      currentPage = 1;
+      badge.textContent = `Login: ${s.nama} (${s.nisn})`;
+      badge.className = 'badge badge-green';
+      refreshAbsenButtonState();
+
+      out.innerHTML = `
+        <span class="badge badge-green">Login Berhasil</span><br/>
+        Selamat datang, <strong>${s.nama}</strong> (${s.kelas} / ${s.jurusan}). Rekap nilai dan histori absensi yang sudah tercatat ditampilkan di bawah.
+      `;
+
+      renderHistoriSiswa();
+      renderNilaiSiswa();
+    }
+
     /* Histori Absensi: hanya data yang sudah absen di database absensi */
     function getFilteredHistoriSiswa() {
-      if (!currentStudent) return [];
+      if (!loggedInStudent) return [];
       const db = getDb();
       const q = document.getElementById('cariHistori').value.trim().toLowerCase();
       const sts = document.getElementById('filterStatusHistori').value;
 
       return db.absensi.filter(a => {
-        if (a.nisn.toLowerCase() !== currentStudent.nisn.toLowerCase()) return false;
+        if (String(a.nisn || '').toLowerCase() !== loggedInStudent.nisn.toLowerCase()) return false;
         if (!a.status) return false;
         const matchSts = !sts || a.status === sts;
         const matchQ = !q ||
@@ -403,8 +472,8 @@
       const btnNext = document.getElementById('btnNext');
       const btnLast = document.getElementById('btnLast');
 
-      if (!currentStudent) {
-        tbody.innerHTML = `<tr><td colspan="4" class="empty-state">Silakan login menggunakan NISN terlebih dahulu untuk melihat histori absensi yang sudah tercatat.</td></tr>`;
+      if (!loggedInStudent) {
+        tbody.innerHTML = `<tr><td colspan="4" class="empty-state">Klik tombol <strong>Login Lihat Nilai</strong> dengan NISN untuk melihat histori absensi yang sudah tercatat.</td></tr>`;
         badge.textContent = '0 Data';
         info.textContent = 'Halaman 1 dari 1';
         [btnFirst, btnPrev, btnNext, btnLast].forEach(b => b.disabled = true);
@@ -452,7 +521,7 @@
       const strip = document.getElementById('ringkasanNilai');
       const printMeta = document.getElementById('printStudentMeta');
 
-      if (!currentStudent) {
+      if (!loggedInStudent) {
         strip.innerHTML = `
           <span><strong>Nama:</strong> -</span>
           <span><strong>NISN:</strong> -</span>
@@ -460,12 +529,12 @@
           <span><strong>Rata-Rata Nilai:</strong> 0.0</span>
         `;
         printMeta.textContent = 'Siswa: - | NISN: - | Kelas: -';
-        tbody.innerHTML = `<tr><td colspan="6" class="empty-state">Silakan login menggunakan NISN terlebih dahulu untuk melihat rekap nilai.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" class="empty-state">Klik tombol <strong>Login Lihat Nilai</strong> dengan NISN untuk melihat rekap nilai.</td></tr>`;
         return;
       }
 
       const db = getDb();
-      const nilaiList = db.nilai.filter(n => n.nisn.toLowerCase() === currentStudent.nisn.toLowerCase());
+      const nilaiList = db.nilai.filter(n => String(n.nisn || '').toLowerCase() === loggedInStudent.nisn.toLowerCase());
 
       let avg = '0.0';
       if (nilaiList.length > 0) {
@@ -474,12 +543,12 @@
       }
 
       strip.innerHTML = `
-        <span><strong>Nama:</strong> ${currentStudent.nama}</span>
-        <span><strong>NISN:</strong> ${currentStudent.nisn}</span>
-        <span><strong>Kelas / Jurusan:</strong> ${currentStudent.kelas} / ${currentStudent.jurusan}</span>
+        <span><strong>Nama:</strong> ${loggedInStudent.nama}</span>
+        <span><strong>NISN:</strong> ${loggedInStudent.nisn}</span>
+        <span><strong>Kelas / Jurusan:</strong> ${loggedInStudent.kelas} / ${loggedInStudent.jurusan}</span>
         <span><strong>Rata-Rata Nilai:</strong> ${avg}</span>
       `;
-      printMeta.textContent = `Siswa: ${currentStudent.nama} | NISN: ${currentStudent.nisn} | Kelas: ${currentStudent.kelas} (${currentStudent.jurusan}) | Rata-Rata: ${avg}`;
+      printMeta.textContent = `Siswa: ${loggedInStudent.nama} | NISN: ${loggedInStudent.nisn} | Kelas: ${loggedInStudent.kelas} (${loggedInStudent.jurusan}) | Rata-Rata: ${avg}`;
 
       if (!nilaiList.length) {
         tbody.innerHTML = `<tr><td colspan="6" class="empty-state">Belum ada rekap nilai dari Admin untuk siswa ini.</td></tr>`;
@@ -503,14 +572,15 @@
     }
 
     function downloadNilaiPDF() {
-      if (!currentStudent) {
-        alert('Silakan login siswa terlebih dahulu sebelum mengunduh rekap nilai PDF.');
+      if (!loggedInStudent) {
+        alert('Silakan klik Login Lihat Nilai terlebih dahulu sebelum mengunduh rekap nilai PDF.');
         return;
       }
       window.print();
     }
 
     renderInfoLokasi();
+    refreshAbsenButtonState();
     renderHistoriSiswa();
     renderNilaiSiswa();
   </script>
