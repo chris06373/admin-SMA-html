@@ -1,672 +1,478 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Administrasi Sekolah SMA - Siswa, Alumni & Pembayaran</title>
-    <!-- Bootstrap 5 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Bootstrap Icons -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sistem Administrasi SMA - Data Siswa & Pembayaran</title>
+  <style>
+    :root {
+      --primary: #1d4ed8;
+      --primary-light: #eff6ff;
+      --success: #15803d;
+      --success-bg: #dcfce7;
+      --warning: #b45309;
+      --danger: #b91c1c;
+      --bg: #f4f6f9;
+      --card: #ffffff;
+      --text: #0f172a;
+      --muted: #64748b;
+      --border: #e2e8f0;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
+    body { background: var(--bg); color: var(--text); padding: 20px; }
+    .container { max-width: 1240px; margin: 0 auto; }
+
+    .top-header {
+      display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center;
+      gap: 12px; margin-bottom: 18px;
+    }
+    .brand h1 { font-size: 1.5rem; color: var(--primary); }
+    .brand p { font-size: 0.86rem; color: var(--muted); margin-top: 2px; }
+    .header-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+    .btn {
+      border: none; border-radius: 8px; padding: 9px 14px; font-size: 0.86rem;
+      font-weight: 600; cursor: pointer; text-decoration: none;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-success { background: var(--success); color: #fff; }
+    .btn-warning { background: #f59e0b; color: #fff; }
+    .btn-danger { background: var(--danger); color: #fff; }
+    .btn-outline { background: #fff; color: var(--text); border: 1px solid var(--border); }
+    .btn-sm { padding: 5px 10px; font-size: 0.78rem; border-radius: 6px; }
+
+    .stats-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px; margin-bottom: 18px;
+    }
+    .stat-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+      padding: 16px; display: flex; justify-content: space-between; align-items: center;
+    }
+    .stat-label { font-size: 0.74rem; font-weight: 700; color: var(--muted); text-transform: uppercase; }
+    .stat-value { font-size: 1.45rem; font-weight: 800; margin-top: 4px; }
+    .stat-icon { width: 42px; height: 42px; border-radius: 10px; display: grid; place-items: center; font-size: 1.1rem; }
+
+    .sub-tabs { display: flex; gap: 8px; margin-bottom: 14px; }
+    .sub-tab {
+      background: #fff; border: 1px solid var(--border); padding: 8px 14px;
+      border-radius: 8px; font-weight: 600; font-size: 0.88rem; cursor: pointer; color: var(--muted);
+    }
+    .sub-tab.active { background: var(--primary-light); color: var(--primary); border-color: #bfdbfe; }
+
+    .panel {
+      background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+      padding: 18px; display: none;
+    }
+    .panel.active { display: block; }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; align-items: center; }
+    input, select {
+      padding: 8px 11px; border: 1px solid var(--border); border-radius: 8px;
+      font-size: 0.86rem; background: #fff; color: var(--text);
+    }
+
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.86rem; }
+    thead th { background: #1e293b; color: #fff; text-align: left; padding: 10px 12px; }
+    tbody td { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+    tbody tr:hover { background: #f8fafc; }
+
+    .badge { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 0.74rem; font-weight: 700; }
+    .badge-blue { background: var(--primary-light); color: var(--primary); }
+    .badge-green { background: var(--success-bg); color: var(--success); }
+    .empty-state { text-align: center; padding: 32px 12px; color: var(--muted); }
+
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(15,23,42,0.5);
+      display: none; place-items: center; padding: 16px; z-index: 50;
+    }
+    .modal-backdrop.open { display: grid; }
+    .modal {
+      background: #fff; border-radius: 12px; width: 100%; max-width: 500px;
+      padding: 20px; box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+    }
+    .modal-header {
+      display: flex; justify-content: space-between; align-items: center;
+      border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 14px;
+    }
+    .form-group { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
+    .form-group label { font-size: 0.78rem; font-weight: 600; color: var(--muted); }
+    .form-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .modal-footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+  </style>
 </head>
-<body class="bg-light">
+<body>
+  <div class="container">
+    <div class="top-header">
+      <div class="brand">
+        <h1>🎓 Sistem Administrasi SMA</h1>
+        <p>Manajemen Data Siswa Aktif, Alumni & Histori Pembayaran</p>
+      </div>
+      <div class="header-actions">
+        <a href="absensi.html" class="btn btn-outline">📋 Buka Halaman Absensi & Nilai</a>
+        <button class="btn btn-primary" onclick="openSiswaModal()">+ Tambah Data Siswa / Alumni</button>
+      </div>
+    </div>
 
-<div class="container my-4">
-    <!-- Header -->
-    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+    <div class="stats-grid">
+      <div class="stat-card">
         <div>
-            <h3 class="mb-0 fw-bold text-primary"><i class="bi bi-mortarboard-fill me-2"></i>Sistem Administrasi SMA</h3>
-            <small class="text-muted">Manajemen Data Siswa Aktif, Alumni & Histori Pembayaran</small>
+          <div class="stat-label">Jumlah Siswa Aktif (X - XII)</div>
+          <div class="stat-value" id="statAktif">0 Siswa</div>
         </div>
-        <button class="btn btn-primary" onclick="bukaModalSiswa()">
-            <i class="bi bi-person-plus-fill me-1"></i> Tambah Data Siswa / Alumni
-        </button>
+        <div class="stat-icon" style="background:#eff6ff;color:#1d4ed8;">👥</div>
+      </div>
+      <div class="stat-card">
+        <div>
+          <div class="stat-label">Jumlah Alumni SMA</div>
+          <div class="stat-value" id="statAlumni">0 Alumni</div>
+        </div>
+        <div class="stat-icon" style="background:#dcfce7;color:#15803d;">🎓</div>
+      </div>
+      <div class="stat-card">
+        <div>
+          <div class="stat-label">Total Pembayaran Masuk</div>
+          <div class="stat-value" id="statBayar">Rp 0</div>
+        </div>
+        <div class="stat-icon" style="background:#fef9c3;color:#a16207;">💳</div>
+      </div>
     </div>
 
-    <!-- Kartu Statistik Real-time (Jumlah Siswa, Alumni, Total Pemasukan) -->
-    <div class="row g-3 mb-4">
-        <div class="col-md-4">
-            <div class="card border-0 shadow-sm border-start border-primary border-4">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <small class="text-muted text-uppercase fw-semibold">Jumlah Siswa Aktif (X - XII)</small>
-                            <h3 class="fw-bold mb-0 mt-1" id="statSiswaAktif">0</h3>
-                        </div>
-                        <div class="bg-primary bg-opacity-10 p-3 rounded text-primary">
-                            <i class="bi bi-people-fill fs-4"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card border-0 shadow-sm border-start border-success border-4">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <small class="text-muted text-uppercase fw-semibold">Jumlah Alumni SMA</small>
-                            <h3 class="fw-bold mb-0 mt-1" id="statAlumni">0</h3>
-                        </div>
-                        <div class="bg-success bg-opacity-10 p-3 rounded text-success">
-                            <i class="bi bi-award-fill fs-4"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card border-0 shadow-sm border-start border-warning border-4">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <small class="text-muted text-uppercase fw-semibold">Total Pembayaran Masuk</small>
-                            <h3 class="fw-bold mb-0 mt-1" id="statTotalBayar">Rp 0</h3>
-                        </div>
-                        <div class="bg-warning bg-opacity-10 p-3 rounded text-warning">
-                            <i class="bi bi-cash-stack fs-4"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+    <div class="sub-tabs">
+      <button class="sub-tab active" onclick="switchSubTab('dataSiswaPanel', this)">👤 Data Siswa & Alumni</button>
+      <button class="sub-tab" onclick="switchSubTab('historiBayarPanel', this)">🧾 Histori Pembayaran</button>
     </div>
 
-    <!-- Navigasi Tab: Data Siswa & Alumni vs Histori Pembayaran -->
-    <ul class="nav nav-tabs mb-3" id="adminTab" role="tablist">
-        <li class="nav-item" role="presentation">
-            <button class="nav-link active fw-semibold" id="siswa-tab" data-bs-toggle="tab" data-bs-target="#siswa-pane" type="button" role="tab">
-                <i class="bi bi-person-lines-fill me-1"></i> Data Siswa & Alumni
-            </button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link fw-semibold" id="pembayaran-tab" data-bs-toggle="tab" data-bs-target="#pembayaran-pane" type="button" role="tab">
-                <i class="bi bi-receipt-cutoff me-1"></i> Histori Pembayaran
-            </button>
-        </li>
-    </ul>
+    <!-- Panel Data Siswa -->
+    <section id="dataSiswaPanel" class="panel active">
+      <div class="toolbar">
+        <input type="text" id="searchInput" placeholder="Cari NISN atau Nama Siswa..." oninput="renderSiswa()" style="flex:1;min-width:200px;" />
+        <select id="filterKelas" onchange="renderSiswa()">
+          <option value="">Semua Tingkat / Kelas</option>
+          <option value="Kelas X">Kelas X</option>
+          <option value="Kelas XI">Kelas XI</option>
+          <option value="Kelas XII">Kelas XII</option>
+        </select>
+        <select id="filterStatus" onchange="renderSiswa()">
+          <option value="">Semua Status</option>
+          <option value="Siswa Aktif">Siswa Aktif</option>
+          <option value="Alumni">Alumni</option>
+        </select>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>NISN</th>
+              <th>Nama Lengkap</th>
+              <th>Kelas / Angkatan</th>
+              <th>Jurusan</th>
+              <th>Status</th>
+              <th>Total Terbayar</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="siswaBody"></tbody>
+        </table>
+      </div>
+    </section>
 
-    <div class="tab-content" id="adminTabContent">
-        <!-- TAB 1: CRUD SISWA & ALUMNI -->
-        <div class="tab-pane fade show active" id="siswa-pane" role="tabpanel">
-            <div class="card border-0 shadow-sm mb-3">
-                <div class="card-body py-3">
-                    <div class="row g-2">
-                        <div class="col-md-5">
-                            <input type="text" id="searchSiswa" class="form-control" placeholder="Cari NISN atau Nama Siswa..." onkeyup="renderTabelSiswa()">
-                        </div>
-                        <div class="col-md-4">
-                            <select id="filterKelas" class="form-select" onchange="renderTabelSiswa()">
-                                <option value="">Semua Tingkat / Kelas</option>
-                                <option value="X">Kelas X (10)</option>
-                                <option value="XI">Kelas XI (11)</option>
-                                <option value="XII">Kelas XII (12)</option>
-                                <option value="Alumni">Lulus / Alumni</option>
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <select id="filterStatus" class="form-select" onchange="renderTabelSiswa()">
-                                <option value="">Semua Status</option>
-                                <option value="Aktif">Siswa Aktif</option>
-                                <option value="Alumni">Alumni</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-            </div>
+    <!-- Panel Histori Pembayaran -->
+    <section id="historiBayarPanel" class="panel">
+      <div class="toolbar">
+        <input type="text" id="searchBayar" placeholder="Cari nama siswa, NISN, atau jenis pembayaran..." oninput="renderPembayaran()" style="flex:1;min-width:220px;" />
+        <button class="btn btn-success btn-sm" onclick="openBayarModal()">+ Input Pembayaran Baru</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>No. Kwitansi</th>
+              <th>Tanggal</th>
+              <th>NISN & Nama Siswa</th>
+              <th>Jenis Pembayaran</th>
+              <th>Nominal</th>
+              <th>Keterangan</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="bayarBody"></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
 
-            <div class="card border-0 shadow-sm">
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0">
-                            <thead class="table-dark">
-                                <tr>
-                                    <th class="ps-3">NISN</th>
-                                    <th>Nama Lengkap</th>
-                                    <th>Kelas / Angkatan</th>
-                                    <th>Jurusan</th>
-                                    <th>Status</th>
-                                    <th>Total Terbayar</th>
-                                    <th class="text-center pe-3">Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tabelSiswaBody"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
+  <!-- Modal Siswa -->
+  <div class="modal-backdrop" id="siswaModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="siswaModalTitle">Tambah Data Siswa / Alumni</h3>
+        <button class="btn btn-outline btn-sm" onclick="closeModal('siswaModal')">✕</button>
+      </div>
+      <input type="hidden" id="editIndex" />
+      <div class="form-group">
+        <label>NISN</label>
+        <input type="text" id="mNisn" placeholder="Contoh: NSMA-003" />
+      </div>
+      <div class="form-group">
+        <label>Nama Lengkap</label>
+        <input type="text" id="mNama" placeholder="Nama lengkap" />
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Kelas</label>
+          <select id="mKelas">
+            <option value="Kelas X">Kelas X</option>
+            <option value="Kelas XI">Kelas XI</option>
+            <option value="Kelas XII">Kelas XII</option>
+          </select>
         </div>
-
-        <!-- TAB 2: HISTORI PEMBAYARAN -->
-        <div class="tab-pane fade" id="pembayaran-pane" role="tabpanel">
-            <div class="card border-0 shadow-sm mb-3">
-                <div class="card-body py-3">
-                    <div class="row g-2 align-items-center">
-                        <div class="col-md-8">
-                            <input type="text" id="searchBayar" class="form-control" placeholder="Cari nama siswa, NISN, atau jenis pembayaran (SPP, Ujian, Wisuda)..." onkeyup="renderTabelPembayaran()">
-                        </div>
-                        <div class="col-md-4 text-md-end">
-                            <button class="btn btn-success w-100 w-md-auto" onclick="bukaModalBayar()">
-                                <i class="bi bi-plus-circle me-1"></i> Input Pembayaran Baru
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card border-0 shadow-sm">
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0">
-                            <thead class="table-dark">
-                                <tr>
-                                    <th class="ps-3">No. Kwitansi</th>
-                                    <th>Tanggal</th>
-                                    <th>NISN & Nama Siswa</th>
-                                    <th>Jenis Pembayaran</th>
-                                    <th>Nominal</th>
-                                    <th>Keterangan</th>
-                                    <th class="text-center pe-3">Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tabelBayarBody"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
+        <div class="form-group">
+          <label>Jurusan</label>
+          <select id="mJurusan">
+            <option value="MIPA">MIPA</option>
+            <option value="IPS">IPS</option>
+          </select>
         </div>
+        <div class="form-group">
+          <label>Status</label>
+          <select id="mStatus">
+            <option value="Siswa Aktif">Siswa Aktif</option>
+            <option value="Alumni">Alumni</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline btn-sm" onclick="closeModal('siswaModal')">Batal</button>
+        <button class="btn btn-primary btn-sm" onclick="saveSiswa()">Simpan</button>
+      </div>
     </div>
-</div>
+  </div>
 
-<!-- MODAL CREATE / UPDATE SISWA & ALUMNI -->
-<div class="modal fade" id="modalSiswa" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <form id="formSiswa" onsubmit="simpanSiswa(event)">
-                <div class="modal-header">
-                    <h5 class="modal-title fw-bold" id="modalSiswaTitle">Tambah Data Siswa</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <input type="hidden" id="siswaEditId">
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label fw-semibold">NISN <span class="text-danger">*</span></label>
-                            <input type="text" id="nisn" class="form-control" placeholder="Cth: 0081234567" required>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label fw-semibold">Status <span class="text-danger">*</span></label>
-                            <select id="statusSiswa" class="form-select" onchange="toggleFormAlumni()" required>
-                                <option value="Aktif">Siswa Aktif</option>
-                                <option value="Alumni">Alumni (Lulus)</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Nama Lengkap Siswa <span class="text-danger">*</span></label>
-                        <input type="text" id="namaSiswa" class="form-control" placeholder="Nama lengkap sesuai ijazah/rapor" required>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6 mb-3" id="groupKelas">
-                            <label class="form-label fw-semibold">Tingkat Kelas</label>
-                            <select id="kelasSiswa" class="form-select">
-                                <option value="X">Kelas X (10)</option>
-                                <option value="XI">Kelas XI (11)</option>
-                                <option value="XII">Kelas XII (12)</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6 mb-3 d-none" id="groupTahunLulus">
-                            <label class="form-label fw-semibold">Tahun Lulus</label>
-                            <input type="number" id="tahunLulus" class="form-control" placeholder="Cth: 2026" min="1990" max="2099">
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label fw-semibold">Peminatan / Jurusan</label>
-                            <select id="jurusanSiswa" class="form-select">
-                                <option value="MIPA">MIPA</option>
-                                <option value="IPS">IPS</option>
-                                <option value="Bahasa">Bahasa</option>
-                                <option value="Kurikulum Merdeka">Kurikulum Merdeka</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-primary">Simpan Data</button>
-                </div>
-            </form>
-        </div>
+  <!-- Modal Pembayaran -->
+  <div class="modal-backdrop" id="bayarModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Input Pembayaran</h3>
+        <button class="btn btn-outline btn-sm" onclick="closeModal('bayarModal')">✕</button>
+      </div>
+      <div class="form-group">
+        <label>Siswa</label>
+        <select id="bSiswa"></select>
+      </div>
+      <div class="form-group">
+        <label>Jenis Pembayaran</label>
+        <input type="text" id="bJenis" value="SPP Bulanan" />
+      </div>
+      <div class="form-group">
+        <label>Nominal (Rp)</label>
+        <input type="number" id="bNominal" placeholder="300000" />
+      </div>
+      <div class="form-group">
+        <label>Keterangan</label>
+        <input type="text" id="bKet" placeholder="Contoh: November Lunas" />
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline btn-sm" onclick="closeModal('bayarModal')">Batal</button>
+        <button class="btn btn-success btn-sm" onclick="savePembayaran()">Simpan</button>
+      </div>
     </div>
-</div>
+  </div>
 
-<!-- MODAL INPUT PEMBAYARAN -->
-<div class="modal fade" id="modalBayar" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <form id="formBayar" onsubmit="simpanPembayaran(event)">
-                <div class="modal-header">
-                    <h5 class="modal-title fw-bold">Catat Pembayaran Administrasi</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Pilih Siswa / Alumni <span class="text-danger">*</span></label>
-                        <select id="pilihSiswaBayar" class="form-select" required>
-                            <option value="">-- Pilih Siswa --</option>
-                        </select>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label fw-semibold">Jenis Pembayaran <span class="text-danger">*</span></label>
-                            <select id="jenisBayar" class="form-select" required>
-                                <option value="SPP Bulanan">SPP Bulanan</option>
-                                <option value="Uang Gedung / Pangkal">Uang Gedung / Pangkal</option>
-                                <option value="Ujian Sekolah / PAS">Ujian Sekolah / PAS</option>
-                                <option value="Buku & Seragam">Buku & Seragam</option>
-                                <option value="Wisuda / Pelepasan">Wisuda / Pelepasan</option>
-                                <option value="Legalisir Ijazah (Alumni)">Legalisir Ijazah (Alumni)</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label fw-semibold">Nominal (Rp) <span class="text-danger">*</span></label>
-                            <input type="number" id="nominalBayar" class="form-control" min="1000" placeholder="Cth: 500000" required>
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Tanggal Pembayaran <span class="text-danger">*</span></label>
-                        <input type="date" id="tanggalBayar" class="form-control" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Catatan / Bulan Tagihan</label>
-                        <input type="text" id="ketBayar" class="form-control" placeholder="Cth: SPP Bulan November 2026 / Lunas">
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-success">Simpan Pembayaran</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
+  <script>
+    const STORAGE_KEY = 'sma_admin_dev_v1';
+    const defaultData = {
+      siswa: [
+        { nisn: 'NSMA-001', nama: 'Jane', kelas: 'Kelas X', jurusan: 'MIPA', status: 'Siswa Aktif', totalBayar: 300000 },
+        { nisn: 'NSMA-002', nama: 'Budi Jaya', kelas: 'Kelas XII', jurusan: 'IPS', status: 'Siswa Aktif', totalBayar: 250000 }
+      ],
+      pembayaran: [
+        { kwitansi: 'INV-909167', tanggal: '2026-11-16', nisn: 'NSMA-001', nama: 'Jane', jenis: 'SPP Bulanan', nominal: 300000, ket: 'November Lunas' },
+        { kwitansi: 'INV-092555', tanggal: '2026-11-16', nisn: 'NSMA-002', nama: 'Budi Jaya', jenis: 'SPP Bulanan', nominal: 250000, ket: '50.000 di bayar tanggal 20' }
+      ],
+      absensi: [],
+      nilai: [],
+      lokasiAdmin: { nama: 'SMA Negeri Contoh - Kampus Utama', lat: -6.175392, lng: 106.827153, radiusMeter: 150 }
+    };
 
-<!-- MODAL HISTORI PEMBAYARAN PER SISWA -->
-<div class="modal fade" id="modalHistoriSiswa" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title fw-bold" id="historiSiswaTitle">Histori Pembayaran Siswa</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body" id="historiSiswaBody"></div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
-            </div>
-        </div>
-    </div>
-</div>
+    let db = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null') || structuredClone(defaultData);
+    db = { ...defaultData, ...db };
 
-<!-- Bootstrap 5 JS Bundle -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
-<script>
-    // State Awal KOSONG (Tidak ada dummy data di awal)
-    const KEY_SISWA = 'sma_admin_siswa_v1';
-    const KEY_BAYAR = 'sma_admin_bayar_v1';
-
-    let dataSiswa = JSON.parse(localStorage.getItem(KEY_SISWA)) || [];
-    let dataBayar = JSON.parse(localStorage.getItem(KEY_BAYAR)) || [];
-
-    const modalSiswa = new bootstrap.Modal(document.getElementById('modalSiswa'));
-    const modalBayar = new bootstrap.Modal(document.getElementById('modalBayar'));
-    const modalHistoriSiswa = new bootstrap.Modal(document.getElementById('modalHistoriSiswa'));
-
-    function syncData() {
-        localStorage.setItem(KEY_SISWA, JSON.stringify(dataSiswa));
-        localStorage.setItem(KEY_BAYAR, JSON.stringify(dataBayar));
-        updateStatistik();
+    function persist() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+      renderAll();
     }
 
-    function formatRupiah(angka) {
-        return 'Rp ' + Number(angka).toLocaleString('id-ID');
+    function rupiah(n) { return 'Rp ' + Number(n || 0).toLocaleString('id-ID'); }
+    function openModal(id) { document.getElementById(id).classList.add('open'); }
+    function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+    function switchSubTab(panelId, btn) {
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.sub-tab').forEach(t => t.classList.remove('active'));
+      document.getElementById(panelId).classList.add('active');
+      btn.classList.add('active');
     }
 
-    // Update Kartu Jumlah Siswa, Alumni, dan Pemasukan
-    function updateStatistik() {
-        const aktifCount = dataSiswa.filter(s => s.status === 'Aktif').length;
-        const alumniCount = dataSiswa.filter(s => s.status === 'Alumni').length;
-        const totalUang = dataBayar.reduce((sum, item) => sum + Number(item.nominal), 0);
-
-        document.getElementById('statSiswaAktif').innerText = aktifCount + ' Siswa';
-        document.getElementById('statAlumni').innerText = alumniCount + ' Alumni';
-        document.getElementById('statTotalBayar').innerText = formatRupiah(totalUang);
+    function renderStats() {
+      document.getElementById('statAktif').textContent = `${db.siswa.filter(s => s.status === 'Siswa Aktif').length} Siswa`;
+      document.getElementById('statAlumni').textContent = `${db.siswa.filter(s => s.status === 'Alumni').length} Alumni`;
+      const total = db.pembayaran.reduce((a, b) => a + Number(b.nominal || 0), 0);
+      document.getElementById('statBayar').textContent = rupiah(total);
     }
 
-    // Toggle input Kelas vs Tahun Lulus
-    function toggleFormAlumni() {
-        const status = document.getElementById('statusSiswa').value;
-        if (status === 'Alumni') {
-            document.getElementById('groupKelas').classList.add('d-none');
-            document.getElementById('groupTahunLulus').classList.remove('d-none');
-        } else {
-            document.getElementById('groupKelas').classList.remove('d-none');
-            document.getElementById('groupTahunLulus').classList.add('d-none');
-        }
+    function openSiswaModal(idx = null) {
+      document.getElementById('editIndex').value = idx !== null ? idx : '';
+      if (idx !== null) {
+        const s = db.siswa[idx];
+        document.getElementById('siswaModalTitle').textContent = 'Edit Data Siswa';
+        document.getElementById('mNisn').value = s.nisn;
+        document.getElementById('mNama').value = s.nama;
+        document.getElementById('mKelas').value = s.kelas;
+        document.getElementById('mJurusan').value = s.jurusan;
+        document.getElementById('mStatus').value = s.status;
+      } else {
+        document.getElementById('siswaModalTitle').textContent = 'Tambah Data Siswa / Alumni';
+        document.getElementById('mNisn').value = '';
+        document.getElementById('mNama').value = '';
+        document.getElementById('mKelas').value = 'Kelas X';
+        document.getElementById('mJurusan').value = 'MIPA';
+        document.getElementById('mStatus').value = 'Siswa Aktif';
+      }
+      openModal('siswaModal');
     }
 
-    // READ: Render Tabel Siswa & Alumni
-    function renderTabelSiswa() {
-        const tbody = document.getElementById('tabelSiswaBody');
-        const keyword = document.getElementById('searchSiswa').value.toLowerCase();
-        const fKelas = document.getElementById('filterKelas').value;
-        const fStatus = document.getElementById('filterStatus').value;
+    function saveSiswa() {
+      const idx = document.getElementById('editIndex').value;
+      const nisn = document.getElementById('mNisn').value.trim();
+      const nama = document.getElementById('mNama').value.trim();
+      const kelas = document.getElementById('mKelas').value;
+      const jurusan = document.getElementById('mJurusan').value;
+      const status = document.getElementById('mStatus').value;
+      if (!nisn || !nama) return alert('NISN dan Nama wajib diisi.');
 
-        const filtered = dataSiswa.filter(s => {
-            const matchText = s.nama.toLowerCase().includes(keyword) || s.nisn.toLowerCase().includes(keyword);
-            const matchKelas = fKelas === '' || (fKelas === 'Alumni' ? s.status === 'Alumni' : (s.status === 'Aktif' && s.kelas === fKelas));
-            const matchStatus = fStatus === '' || s.status === fStatus;
-            return matchText && matchKelas && matchStatus;
-        });
-
-        tbody.innerHTML = '';
-
-        if (filtered.length === 0) {
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="7" class="text-center py-5 text-muted">
-                        <i class="bi bi-folder2-open fs-1 d-block mb-2"></i>
-                        <strong>Belum ada data siswa atau alumni SMA.</strong><br>
-                        <small>Klik tombol <b>"+ Tambah Data Siswa / Alumni"</b> untuk mulai mengisi data.</small>
-                    </td>
-                </tr>
-            `;
-            return;
-        }
-
-        filtered.forEach(s => {
-            const totalBayarSiswa = dataBayar
-                .filter(b => b.siswaId === s.id)
-                .reduce((acc, cur) => acc + Number(cur.nominal), 0);
-
-            const infoKelas = s.status === 'Aktif'
-                ? `Kelas <strong>${s.kelas}</strong>`
-                : `Lulusan <strong>${s.tahunLulus || '-'}</strong>`;
-
-            const badgeStatus = s.status === 'Aktif'
-                ? `<span class="badge bg-primary">Siswa Aktif</span>`
-                : `<span class="badge bg-success">Alumni</span>`;
-
-            tbody.innerHTML += `
-                <tr>
-                    <td class="ps-3 fw-semibold">${s.nisn}</td>
-                    <td>${s.nama}</td>
-                    <td>${infoKelas}</td>
-                    <td><span class="badge bg-light text-dark border">${s.jurusan}</span></td>
-                    <td>${badgeStatus}</td>
-                    <td class="fw-semibold text-success">${formatRupiah(totalBayarSiswa)}</td>
-                    <td class="text-center pe-3">
-                        <div class="btn-group btn-group-sm">
-                            <button class="btn btn-outline-success" title="Catat Pembayaran" onclick="bukaModalBayar('${s.id}')">
-                                <i class="bi bi-cash"></i>
-                            </button>
-                            <button class="btn btn-outline-info" title="Lihat Histori Pembayaran" onclick="lihatHistoriSiswa('${s.id}')">
-                                <i class="bi bi-clock-history"></i>
-                            </button>
-                            <button class="btn btn-outline-warning" title="Edit Data" onclick="bukaModalEditSiswa('${s.id}')">
-                                <i class="bi bi-pencil"></i>
-                            </button>
-                            <button class="btn btn-outline-danger" title="Hapus Data" onclick="hapusSiswa('${s.id}')">
-                                <i class="bi bi-trash"></i>
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-            `;
-        });
+      if (idx !== '') {
+        db.siswa[Number(idx)] = { ...db.siswa[Number(idx)], nisn, nama, kelas, jurusan, status };
+      } else {
+        if (db.siswa.some(s => s.nisn.toLowerCase() === nisn.toLowerCase())) return alert('NISN sudah ada.');
+        db.siswa.push({ nisn, nama, kelas, jurusan, status, totalBayar: 0 });
+      }
+      closeModal('siswaModal');
+      persist();
     }
 
-    // CREATE & UPDATE SISWA
-    function bukaModalSiswa() {
-        document.getElementById('formSiswa').reset();
-        document.getElementById('siswaEditId').value = '';
-        document.getElementById('modalSiswaTitle').innerText = 'Tambah Data Siswa / Alumni SMA';
-        toggleFormAlumni();
-        modalSiswa.show();
+    function deleteSiswa(idx) {
+      if (!confirm('Hapus data siswa ini?')) return;
+      db.siswa.splice(idx, 1);
+      persist();
     }
 
-    function bukaModalEditSiswa(id) {
-        const s = dataSiswa.find(item => item.id === id);
-        if (!s) return;
-
-        document.getElementById('siswaEditId').value = s.id;
-        document.getElementById('nisn').value = s.nisn;
-        document.getElementById('namaSiswa').value = s.nama;
-        document.getElementById('statusSiswa').value = s.status;
-        document.getElementById('kelasSiswa').value = s.kelas || 'X';
-        document.getElementById('tahunLulus').value = s.tahunLulus || '';
-        document.getElementById('jurusanSiswa').value = s.jurusan;
-
-        document.getElementById('modalSiswaTitle').innerText = 'Edit Data Siswa / Alumni';
-        toggleFormAlumni();
-        modalSiswa.show();
+    function openBayarModal(nisnDefault = '') {
+      const sel = document.getElementById('bSiswa');
+      sel.innerHTML = db.siswa.map(s => `<option value="${s.nisn}">${s.nisn} - ${s.nama}</option>`).join('');
+      if (nisnDefault) sel.value = nisnDefault;
+      document.getElementById('bNominal').value = '';
+      document.getElementById('bKet').value = '';
+      openModal('bayarModal');
     }
 
-    function simpanSiswa(e) {
-        e.preventDefault();
-        const editId = document.getElementById('siswaEditId').value;
-        const nisn = document.getElementById('nisn').value.trim();
-        const nama = document.getElementById('namaSiswa').value.trim();
-        const status = document.getElementById('statusSiswa').value;
-        const kelas = document.getElementById('kelasSiswa').value;
-        const tahunLulus = document.getElementById('tahunLulus').value;
-        const jurusan = document.getElementById('jurusanSiswa').value;
+    function savePembayaran() {
+      const nisn = document.getElementById('bSiswa').value;
+      const jenis = document.getElementById('bJenis').value.trim() || 'SPP Bulanan';
+      const nominal = Number(document.getElementById('bNominal').value);
+      const ket = document.getElementById('bKet').value.trim() || '-';
+      const s = db.siswa.find(x => x.nisn === nisn);
+      if (!s || nominal <= 0) return alert('Pilih siswa dan isi nominal valid.');
 
-        if (editId === '') {
-            dataSiswa.unshift({
-                id: 'SISWA-' + Date.now(),
-                nisn,
-                nama,
-                status,
-                kelas: status === 'Aktif' ? kelas : null,
-                tahunLulus: status === 'Alumni' ? tahunLulus : null,
-                jurusan
-            });
-        } else {
-            const idx = dataSiswa.findIndex(item => item.id === editId);
-            if (idx !== -1) {
-                dataSiswa[idx] = {
-                    ...dataSiswa[idx],
-                    nisn,
-                    nama,
-                    status,
-                    kelas: status === 'Aktif' ? kelas : null,
-                    tahunLulus: status === 'Alumni' ? tahunLulus : null,
-                    jurusan
-                };
-            }
-        }
-
-        syncData();
-        renderTabelSiswa();
-        renderTabelPembayaran();
-        modalSiswa.hide();
+      db.pembayaran.unshift({
+        kwitansi: 'INV-' + Math.floor(100000 + Math.random() * 900000),
+        tanggal: new Date().toISOString().slice(0, 10),
+        nisn, nama: s.nama, jenis, nominal, ket
+      });
+      s.totalBayar = Number(s.totalBayar || 0) + nominal;
+      closeModal('bayarModal');
+      persist();
     }
 
-    function hapusSiswa(id) {
-        const s = dataSiswa.find(item => item.id === id);
-        if (!s) return;
-        if (confirm(`Hapus data "${s.nama}" (NISN: ${s.nisn}) beserta seluruh histori pembayarannya?`)) {
-            dataSiswa = dataSiswa.filter(item => item.id !== id);
-            dataBayar = dataBayar.filter(b => b.siswaId !== id);
-            syncData();
-            renderTabelSiswa();
-            renderTabelPembayaran();
-        }
+    function deletePembayaran(idx) {
+      const item = db.pembayaran[idx];
+      const s = db.siswa.find(x => x.nisn === item.nisn);
+      if (s) s.totalBayar = Math.max(0, Number(s.totalBayar || 0) - Number(item.nominal || 0));
+      db.pembayaran.splice(idx, 1);
+      persist();
     }
 
-    // PEMBAYARAN (CREATE, READ, DELETE)
-    function bukaModalBayar(preselectSiswaId = '') {
-        if (dataSiswa.length === 0) {
-            alert('Tambahkan data siswa atau alumni terlebih dahulu sebelum mencatat pembayaran.');
-            return;
-        }
+    function renderSiswa() {
+      const q = document.getElementById('searchInput').value.toLowerCase();
+      const kls = document.getElementById('filterKelas').value;
+      const sts = document.getElementById('filterStatus').value;
 
-        const select = document.getElementById('pilihSiswaBayar');
-        select.innerHTML = '<option value="">-- Pilih Siswa / Alumni --</option>';
-        dataSiswa.forEach(s => {
-            const label = `${s.nisn} - ${s.nama} (${s.status === 'Aktif' ? 'Kelas ' + s.kelas : 'Alumni ' + (s.tahunLulus || '')})`;
-            select.innerHTML += `<option value="${s.id}">${label}</option>`;
-        });
+      const list = db.siswa.filter(s =>
+        (!q || s.nisn.toLowerCase().includes(q) || s.nama.toLowerCase().includes(q)) &&
+        (!kls || s.kelas === kls) &&
+        (!sts || s.status === sts)
+      );
 
-        document.getElementById('formBayar').reset();
-        document.getElementById('tanggalBayar').valueAsDate = new Date();
-        if (preselectSiswaId) {
-            select.value = preselectSiswaId;
-        }
-        modalBayar.show();
+      const body = document.getElementById('siswaBody');
+      if (!list.length) {
+        body.innerHTML = `<tr><td colspan="7" class="empty-state">Belum ada data siswa atau alumni SMA.</td></tr>`;
+        return;
+      }
+
+      body.innerHTML = list.map(s => {
+        const realIdx = db.siswa.findIndex(x => x.nisn === s.nisn);
+        return `
+          <tr>
+            <td><strong>${s.nisn}</strong></td>
+            <td>${s.nama}</td>
+            <td>${s.kelas}</td>
+            <td><span class="badge badge-blue">${s.jurusan}</span></td>
+            <td><span class="badge ${s.status === 'Siswa Aktif' ? 'badge-blue' : 'badge-green'}">${s.status}</span></td>
+            <td><strong style="color:var(--success);">${rupiah(s.totalBayar)}</strong></td>
+            <td>
+              <button class="btn btn-success btn-sm" onclick="openBayarModal('${s.nisn}')">Bayar</button>
+              <button class="btn btn-warning btn-sm" onclick="openSiswaModal(${realIdx})">Edit</button>
+              <button class="btn btn-danger btn-sm" onclick="deleteSiswa(${realIdx})">Hapus</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
     }
 
-    function simpanPembayaran(e) {
-        e.preventDefault();
-        const siswaId = document.getElementById('pilihSiswaBayar').value;
-        const jenis = document.getElementById('jenisBayar').value;
-        const nominal = Number(document.getElementById('nominalBayar').value);
-        const tanggal = document.getElementById('tanggalBayar').value;
-        const keterangan = document.getElementById('ketBayar').value.trim() || '-';
+    function renderPembayaran() {
+      const q = document.getElementById('searchBayar').value.toLowerCase();
+      const list = db.pembayaran.filter(p =>
+        !q || p.nama.toLowerCase().includes(q) || p.nisn.toLowerCase().includes(q) || p.jenis.toLowerCase().includes(q)
+      );
 
-        dataBayar.unshift({
-            id: 'INV-' + Date.now().toString().slice(-6),
-            siswaId,
-            jenis,
-            nominal,
-            tanggal,
-            keterangan
-        });
+      const body = document.getElementById('bayarBody');
+      if (!list.length) {
+        body.innerHTML = `<tr><td colspan="7" class="empty-state">Belum ada histori pembayaran.</td></tr>`;
+        return;
+      }
 
-        syncData();
-        renderTabelSiswa();
-        renderTabelPembayaran();
-        modalBayar.hide();
+      body.innerHTML = list.map((p, idx) => `
+        <tr>
+          <td><strong style="color:var(--primary);">${p.kwitansi}</strong></td>
+          <td>${p.tanggal}</td>
+          <td><strong>${p.nama}</strong><br/><small style="color:var(--muted);">NISN: ${p.nisn}</small></td>
+          <td><span class="badge badge-blue">${p.jenis}</span></td>
+          <td><strong style="color:var(--success);">${rupiah(p.nominal)}</strong></td>
+          <td>${p.ket}</td>
+          <td><button class="btn btn-danger btn-sm" onclick="deletePembayaran(${idx})">Hapus</button></td>
+        </tr>
+      `).join('');
     }
 
-    function renderTabelPembayaran() {
-        const tbody = document.getElementById('tabelBayarBody');
-        const keyword = document.getElementById('searchBayar').value.toLowerCase();
-
-        const filtered = dataBayar.filter(b => {
-            const siswa = dataSiswa.find(s => s.id === b.siswaId) || { nama: 'Terhapus', nisn: '-' };
-            return siswa.nama.toLowerCase().includes(keyword) ||
-                   siswa.nisn.toLowerCase().includes(keyword) ||
-                   b.jenis.toLowerCase().includes(keyword) ||
-                   b.id.toLowerCase().includes(keyword);
-        });
-
-        tbody.innerHTML = '';
-
-        if (filtered.length === 0) {
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="7" class="text-center py-5 text-muted">
-                        <i class="bi bi-receipt fs-1 d-block mb-2"></i>
-                        <strong>Belum ada histori pembayaran tercatat.</strong><br>
-                        <small>Klik <b>"+ Input Pembayaran Baru"</b> untuk mencatat transaksi.</small>
-                    </td>
-                </tr>
-            `;
-            return;
-        }
-
-        filtered.forEach(b => {
-            const siswa = dataSiswa.find(s => s.id === b.siswaId) || { nama: 'Siswa Dihapus', nisn: '-', status: '-' };
-            tbody.innerHTML += `
-                <tr>
-                    <td class="ps-3 fw-bold text-primary">${b.id}</td>
-                    <td>${b.tanggal}</td>
-                    <td>
-                        <div class="fw-semibold">${siswa.nama}</div>
-                        <small class="text-muted">NISN: ${siswa.nisn} • ${siswa.status}</small>
-                    </td>
-                    <td><span class="badge bg-info text-dark">${b.jenis}</span></td>
-                    <td class="fw-bold text-success">${formatRupiah(b.nominal)}</td>
-                    <td><small>${b.keterangan}</small></td>
-                    <td class="text-center pe-3">
-                        <button class="btn btn-sm btn-outline-danger" title="Hapus Transaksi" onclick="hapusPembayaran('${b.id}')">
-                            <i class="bi bi-trash"></i>
-                        </button>
-                    </td>
-                </tr>
-            `;
-        });
+    function renderAll() {
+      renderStats();
+      renderSiswa();
+      renderPembayaran();
     }
 
-    function hapusPembayaran(id) {
-        if (confirm(`Hapus catatan transaksi kwitansi ${id}?`)) {
-            dataBayar = dataBayar.filter(b => b.id !== id);
-            syncData();
-            renderTabelSiswa();
-            renderTabelPembayaran();
-        }
-    }
-
-    // Lihat Histori Pembayaran Spesifik per Siswa/Alumni
-    function lihatHistoriSiswa(siswaId) {
-        const siswa = dataSiswa.find(s => s.id === siswaId);
-        if (!siswa) return;
-
-        const riwayat = dataBayar.filter(b => b.siswaId === siswaId);
-        document.getElementById('historiSiswaTitle').innerText = `Histori Pembayaran: ${siswa.nama} (${siswa.nisn})`;
-
-        if (riwayat.length === 0) {
-            document.getElementById('historiSiswaBody').innerHTML = `
-                <div class="text-center py-4 text-muted">
-                    Belum ada riwayat pembayaran untuk siswa/alumni ini.
-                </div>
-            `;
-        } else {
-            const rows = riwayat.map(r => `
-                <tr>
-                    <td>${r.id}</td>
-                    <td>${r.tanggal}</td>
-                    <td>${r.jenis}</td>
-                    <td class="fw-bold text-success">${formatRupiah(r.nominal)}</td>
-                    <td>${r.keterangan}</td>
-                </tr>
-            `).join('');
-
-            const total = riwayat.reduce((s, r) => s + Number(r.nominal), 0);
-
-            document.getElementById('historiSiswaBody').innerHTML = `
-                <div class="mb-2">
-                    Status: <strong>${siswa.status}</strong> | Jurusan: <strong>${siswa.jurusan}</strong>
-                </div>
-                <table class="table table-bordered table-sm">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Kwitansi</th>
-                            <th>Tanggal</th>
-                            <th>Jenis</th>
-                            <th>Nominal</th>
-                            <th>Keterangan</th>
-                        </tr>
-                    </thead>
-                    <tbody>${rows}</tbody>
-                    <tfoot>
-                        <tr class="table-success fw-bold">
-                            <td colspan="3" class="text-end">Total Terbayar</td>
-                            <td colspan="2">${formatRupiah(total)}</td>
-                        </tr>
-                    </tfoot>
-                </table>
-            `;
-        }
-        modalHistoriSiswa.show();
-    }
-
-    // Inisialisasi tampilan awal (kosong)
-    updateStatistik();
-    renderTabelSiswa();
-    renderTabelPembayaran();
-</script>
-
+    renderAll();
+  </script>
 </body>
 </html>
