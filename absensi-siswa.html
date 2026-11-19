@@ -99,7 +99,6 @@
 
     .print-only-header { display: none; }
 
-    /* Pengaturan Cetak / Download PDF */
     @media print {
       body { background: #fff; padding: 0; }
       .no-print { display: none !important; }
@@ -114,7 +113,7 @@
     <div class="top-header no-print">
       <div class="brand">
         <h1>🎓 Portal Siswa — Absensi, Histori & Rekap Nilai</h1>
-        <p>Login sesuai lokasi Admin • Pantau histori absensi & unduh rekap nilai PDF</p>
+        <p>Login sesuai titik lokasi Admin • Histori absensi yang sudah tercatat & rekap nilai PDF</p>
       </div>
       <div class="header-actions">
         <a href="index.html" class="btn btn-outline">← Beranda</a>
@@ -135,7 +134,7 @@
         <span id="activeStudentBadge" class="badge badge-blue">Belum Login</span>
       </div>
       <p class="desc">
-        Masukkan NISN siswa aktif (contoh: <code>NSMA-001</code> atau <code>NSMA-002</code>). Login dan absensi hanya diizinkan apabila posisi lokasi Anda berada di dalam radius titik lokasi Admin.
+        Masukkan NISN siswa aktif (contoh: <code>NSMA-001</code> atau <code>NSMA-002</code>). Login dan absensi hanya diizinkan jika posisi Anda berada dalam radius titik lokasi yang ditentukan Admin.
       </p>
 
       <div class="login-row">
@@ -144,16 +143,17 @@
           <input type="text" id="nisnInput" placeholder="Masukkan NISN (cth: NSMA-001)" />
         </div>
         <button class="btn btn-success" onclick="prosesLoginSiswa(false)">Login & Absen (GPS)</button>
+        <button class="btn btn-warning" onclick="prosesLoginSiswa(true)">Simulasi Di Luar Lokasi</button>
       </div>
 
       <div id="infoLokasiTarget" class="status-box"></div>
-      <div id="hasilLogin" class="status-box">Silakan masukkan NISN untuk login, melihat histori absensi, dan mengecek rekap nilai.</div>
+      <div id="hasilLogin" class="status-box">Silakan masukkan NISN untuk login, melihat histori absensi yang sudah tercatat, dan mengecek rekap nilai.</div>
     </section>
 
-    <!-- 2. Histori Absensi Siswa + Pencarian + First & Last -->
+    <!-- 2. Histori Absensi (Hanya Saat Sudah Absen) + Pencarian + First & Last -->
     <section class="card no-print">
       <div class="card-header">
-        <h2>2. Histori Absensi Siswa</h2>
+        <h2>2. Histori Absensi Siswa (Data Sudah Absen)</h2>
         <span id="historiCountBadge" class="badge badge-blue">0 Data</span>
       </div>
 
@@ -195,7 +195,7 @@
       </div>
     </section>
 
-    <!-- 3. Rekap Nilai Siswa + Download PDF -->
+    <!-- 3. Rekap Nilai Siswa (Mengikuti Database Admin) + Download PDF -->
     <section class="card" id="nilaiSection">
       <div class="card-header">
         <h2>3. Rekap Nilai Siswa</h2>
@@ -237,16 +237,8 @@
         { nisn: 'NSMA-002', nama: 'Budi Jaya', kelas: 'Kelas XII', jurusan: 'IPS', status: 'Siswa Aktif', totalBayar: 250000 }
       ],
       pembayaran: [],
-      absensi: [
-        { id: 101, tanggal: '2026-11-16', nisn: 'NSMA-001', nama: 'Jane', kelas: 'Kelas X', mapel: 'Absensi Pagi', status: 'Hadir', sumber: 'Admin' },
-        { id: 102, tanggal: '2026-11-17', nisn: 'NSMA-001', nama: 'Jane', kelas: 'Kelas X', mapel: 'Matematika', status: 'Hadir', sumber: 'Login Siswa' },
-        { id: 103, tanggal: '2026-11-18', nisn: 'NSMA-001', nama: 'Jane', kelas: 'Kelas X', mapel: 'Fisika', status: 'Izin', sumber: 'Admin' },
-        { id: 104, tanggal: '2026-11-19', nisn: 'NSMA-001', nama: 'Jane', kelas: 'Kelas X', mapel: 'Absensi Pagi', status: 'Hadir', sumber: 'Login Siswa' }
-      ],
-      nilai: [
-        { id: 201, nisn: 'NSMA-001', nama: 'Jane', kelas: 'Kelas X', mapel: 'Matematika', tugas: 88, uts: 85, uas: 90 },
-        { id: 202, nisn: 'NSMA-001', nama: 'Jane', kelas: 'Kelas X', mapel: 'Bahasa Indonesia', tugas: 90, uts: 86, uas: 88 }
-      ],
+      absensi: [],
+      nilai: [],
       lokasiAdmin: { nama: 'SMA Negeri Contoh - Kampus Utama', lat: -6.175392, lng: 106.827153, radiusMeter: 150 }
     };
 
@@ -258,8 +250,8 @@
       return {
         ...defaultData,
         ...raw,
-        absensi: (raw.absensi && raw.absensi.length) ? raw.absensi : defaultData.absensi,
-        nilai: (raw.nilai && raw.nilai.length) ? raw.nilai : defaultData.nilai,
+        absensi: Array.isArray(raw.absensi) ? raw.absensi : [],
+        nilai: Array.isArray(raw.nilai) ? raw.nilai : [],
         lokasiAdmin: { ...defaultData.lokasiAdmin, ...(raw.lokasiAdmin || {}) }
       };
     }
@@ -313,7 +305,6 @@
           return;
         }
 
-        // Login berhasil: set siswa aktif & catat absensi jika belum absen hari ini
         currentStudent = s;
         currentPage = 1;
         document.getElementById('activeStudentBadge').textContent = `${s.nama} (${s.nisn})`;
@@ -334,7 +325,7 @@
             sumber: 'Login Siswa'
           });
           saveDb(db);
-          pesanAbsen = 'Kehadiran hari ini berhasil dicatat ke Histori Absensi.';
+          pesanAbsen = 'Kehadiran hari ini berhasil dicatat ke database histori absensi.';
         }
 
         out.innerHTML = `
@@ -367,7 +358,7 @@
       );
     }
 
-    /* Histori Absensi + Pencarian + First & Last */
+    /* Histori Absensi: hanya data yang sudah absen di database absensi */
     function getFilteredHistoriSiswa() {
       if (!currentStudent) return [];
       const db = getDb();
@@ -376,11 +367,12 @@
 
       return db.absensi.filter(a => {
         if (a.nisn.toLowerCase() !== currentStudent.nisn.toLowerCase()) return false;
+        if (!a.status) return false;
         const matchSts = !sts || a.status === sts;
         const matchQ = !q ||
-          a.tanggal.toLowerCase().includes(q) ||
-          a.mapel.toLowerCase().includes(q) ||
-          a.status.toLowerCase().includes(q);
+          String(a.tanggal || '').toLowerCase().includes(q) ||
+          String(a.mapel || '').toLowerCase().includes(q) ||
+          String(a.status || '').toLowerCase().includes(q);
         return matchSts && matchQ;
       });
     }
@@ -413,7 +405,7 @@
       const btnLast = document.getElementById('btnLast');
 
       if (!currentStudent) {
-        tbody.innerHTML = `<tr><td colspan="4" class="empty-state">Silakan login menggunakan NISN terlebih dahulu untuk melihat histori absensi.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="4" class="empty-state">Silakan login menggunakan NISN terlebih dahulu untuk melihat histori absensi yang sudah tercatat.</td></tr>`;
         badge.textContent = '0 Data';
         info.textContent = 'Halaman 1 dari 1';
         [btnFirst, btnPrev, btnNext, btnLast].forEach(b => b.disabled = true);
@@ -436,7 +428,7 @@
       btnLast.disabled = currentPage >= totalPages || list.length === 0;
 
       if (!pageItems.length) {
-        tbody.innerHTML = `<tr><td colspan="4" class="empty-state">Tidak ada histori absensi yang sesuai dengan pencarian.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="4" class="empty-state">Belum ada data absensi yang tercatat untuk siswa ini.</td></tr>`;
         return;
       }
 
@@ -449,13 +441,13 @@
             <td>${a.tanggal}</td>
             <td>${a.mapel}</td>
             <td><span class="badge ${cls}">${a.status}</span></td>
-            <td>${a.sumber}</td>
+            <td>${a.sumber || '-'}</td>
           </tr>
         `;
       }).join('');
     }
 
-    /* Rekap Nilai Siswa + Download PDF */
+    /* Rekap Nilai Siswa: mengikuti database nilai Admin */
     function renderNilaiSiswa() {
       const tbody = document.getElementById('nilaiSiswaBody');
       const strip = document.getElementById('ringkasanNilai');
@@ -478,7 +470,7 @@
 
       let avg = '0.0';
       if (nilaiList.length > 0) {
-        const totalAkhir = nilaiList.reduce((acc, n) => acc + (n.tugas * 0.3 + n.uts * 0.3 + n.uas * 0.4), 0);
+        const totalAkhir = nilaiList.reduce((acc, n) => acc + (Number(n.tugas) * 0.3 + Number(n.uts) * 0.3 + Number(n.uas) * 0.4), 0);
         avg = (totalAkhir / nilaiList.length).toFixed(1);
       }
 
@@ -491,12 +483,12 @@
       printMeta.textContent = `Siswa: ${currentStudent.nama} | NISN: ${currentStudent.nisn} | Kelas: ${currentStudent.kelas} (${currentStudent.jurusan}) | Rata-Rata: ${avg}`;
 
       if (!nilaiList.length) {
-        tbody.innerHTML = `<tr><td colspan="6" class="empty-state">Belum ada rekap nilai untuk siswa ini.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" class="empty-state">Belum ada rekap nilai dari Admin untuk siswa ini.</td></tr>`;
         return;
       }
 
       tbody.innerHTML = nilaiList.map(n => {
-        const akhir = Number((n.tugas * 0.3 + n.uts * 0.3 + n.uas * 0.4).toFixed(1));
+        const akhir = Number((Number(n.tugas) * 0.3 + Number(n.uts) * 0.3 + Number(n.uas) * 0.4).toFixed(1));
         const pred = akhir >= 90 ? 'A' : akhir >= 80 ? 'B' : akhir >= 70 ? 'C' : 'D';
         return `
           <tr>
