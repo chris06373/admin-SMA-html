@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Absensi, Histori, Rekap Nilai & Login Lokasi Siswa</title>
+  <title>Portal Admin - Absensi, Histori, Nilai & Lokasi</title>
   <style>
     :root {
       --primary: #1d4ed8;
@@ -23,7 +23,7 @@
 
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
     body { background: var(--bg); color: var(--text); padding: 20px; }
-    .container { max-width: 1240px; margin: 0 auto; }
+    .container { max-width: 1260px; margin: 0 auto; }
 
     .top-header {
       display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center;
@@ -31,6 +31,7 @@
     }
     .brand h1 { font-size: 1.45rem; color: var(--primary); }
     .brand p { font-size: 0.85rem; color: var(--muted); margin-top: 2px; }
+    .header-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 
     .btn {
       border: none; border-radius: 8px; padding: 8px 14px; font-size: 0.85rem;
@@ -80,33 +81,48 @@
     .badge-yellow { background: var(--warning-bg); color: var(--warning); }
     .badge-red { background: var(--danger-bg); color: var(--danger); }
 
-    .split-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 16px; }
-    .box { border: 1px solid var(--border); border-radius: 10px; padding: 16px; background: #fafbfd; }
-    .box h3 { font-size: 1rem; margin-bottom: 8px; }
+    .box { border: 1px solid var(--border); border-radius: 10px; padding: 16px; background: #fafbfd; max-width: 680px; }
     .status-box {
       padding: 10px 12px; border-radius: 8px; font-size: 0.84rem;
-      margin-top: 10px; border: 1px solid var(--border); background: #fff;
+      margin-top: 12px; border: 1px solid var(--border); background: #fff;
     }
     .empty-state { text-align: center; padding: 28px 12px; color: var(--muted); }
+
+    /* Modal Edit Histori */
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(15,23,42,0.5);
+      display: none; place-items: center; padding: 16px; z-index: 50;
+    }
+    .modal-backdrop.open { display: grid; }
+    .modal {
+      background: #fff; border-radius: 12px; width: 100%; max-width: 460px;
+      padding: 20px; box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+    }
+    .modal-header {
+      display: flex; justify-content: space-between; align-items: center;
+      border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 14px;
+    }
+    .modal-footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="top-header">
       <div class="brand">
-        <h1>📋 Portal Absensi, Histori & Rekap Nilai Siswa</h1>
-        <p>Terhubung dengan Data Siswa SMA • Validasi Login Berbasis Titik Lokasi Admin</p>
+        <h1>🛡️ Halaman Admin — Absensi, Histori & Nilai</h1>
+        <p>Khusus Admin Sekolah: Kelola Absensi, Edit & Ekspor Excel Histori, Rekap Nilai, dan Titik Lokasi</p>
       </div>
-      <div>
-        <a href="index.html" class="btn btn-outline">← Kembali ke Data Siswa & Pembayaran</a>
+      <div class="header-actions">
+        <a href="index.html" class="btn btn-outline">← Data Siswa & Pembayaran</a>
+        <a href="absensi-siswa.html" class="btn btn-primary">Halaman Login Siswa →</a>
       </div>
     </div>
 
     <div class="tabs">
       <button class="tab-btn active" onclick="switchTab('menuAbsen', this)">1. Menu Absensi Siswa</button>
-      <button class="tab-btn" onclick="switchTab('historiAbsen', this)">2. Histori Absen</button>
+      <button class="tab-btn" onclick="switchTab('historiAbsen', this)">2. Histori Absen (Edit & Excel)</button>
       <button class="tab-btn" onclick="switchTab('rekapNilai', this)">3. Rekap Nilai Siswa</button>
-      <button class="tab-btn" onclick="switchTab('loginLokasi', this)">4. Login Siswa & Lokasi Admin</button>
+      <button class="tab-btn" onclick="switchTab('lokasiAdmin', this)">4. Pengaturan Lokasi Admin</button>
     </div>
 
     <!-- 1. MENU ABSENSI SISWA -->
@@ -138,7 +154,7 @@
       </div>
     </section>
 
-    <!-- 2. HISTORI ABSEN -->
+    <!-- 2. HISTORI ABSEN (EDIT & DOWNLOAD EXCEL) -->
     <section id="historiAbsen" class="panel">
       <div class="toolbar">
         <input type="text" id="cariHistori" placeholder="Cari NISN atau Nama Siswa..." oninput="renderHistori()" />
@@ -149,6 +165,7 @@
           <option value="Sakit">Sakit</option>
           <option value="Alpha">Alpha</option>
         </select>
+        <button class="btn btn-success btn-sm" onclick="downloadHistoriExcel()">📊 Download Excel (.xls)</button>
       </div>
       <div class="table-wrap">
         <table>
@@ -161,6 +178,7 @@
               <th>Sesi / Mapel</th>
               <th>Status</th>
               <th>Sumber</th>
+              <th>Aksi</th>
             </tr>
           </thead>
           <tbody id="historiBody"></tbody>
@@ -173,9 +191,9 @@
       <div class="toolbar">
         <select id="pilihSiswaNilai"></select>
         <input type="text" id="inputMapelNilai" placeholder="Mata Pelajaran" />
-        <input type="number" id="nTugas" placeholder="Tugas" min="0" max="100" style="width:100px;" />
-        <input type="number" id="nUTS" placeholder="UTS" min="0" max="100" style="width:100px;" />
-        <input type="number" id="nUAS" placeholder="UAS" min="0" max="100" style="width:100px;" />
+        <input type="number" id="nTugas" placeholder="Tugas" min="0" max="100" style="width:95px;" />
+        <input type="number" id="nUTS" placeholder="UTS" min="0" max="100" style="width:95px;" />
+        <input type="number" id="nUAS" placeholder="UAS" min="0" max="100" style="width:95px;" />
         <button class="btn btn-primary btn-sm" onclick="simpanNilai()">+ Simpan Nilai</button>
       </div>
       <div class="table-wrap">
@@ -199,56 +217,74 @@
       </div>
     </section>
 
-    <!-- 4. LOGIN SISWA & LOKASI ADMIN -->
-    <section id="loginLokasi" class="panel">
-      <div class="split-grid">
-        <div class="box">
-          <h3>🛠️ Titik Lokasi & Radius (Ditentukan Admin)</h3>
-          <p style="font-size:0.8rem;color:var(--muted);margin-bottom:10px;">
-            Siswa hanya dapat login & melakukan absensi jika berada dalam radius yang diizinkan.
-          </p>
-          <div class="form-group">
-            <label>Nama Titik Lokasi</label>
-            <input type="text" id="locNama" />
-          </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label>Latitude</label>
-              <input type="number" step="any" id="locLat" />
-            </div>
-            <div class="form-group">
-              <label>Longitude</label>
-              <input type="number" step="any" id="locLng" />
-            </div>
-            <div class="form-group">
-              <label>Radius (meter)</label>
-              <input type="number" id="locRadius" min="10" />
-            </div>
-          </div>
-          <div style="display:flex;flex-wrap:wrap;gap:8px;">
-            <button class="btn btn-primary btn-sm" onclick="simpanLokasi()">Simpan Lokasi Admin</button>
-            <button class="btn btn-outline btn-sm" onclick="pakaiLokasiSekarang()">Ambil GPS Perangkat</button>
-          </div>
-          <div id="infoLokasiAdmin" class="status-box"></div>
+    <!-- 4. PENGATURAN LOKASI ADMIN -->
+    <section id="lokasiAdmin" class="panel">
+      <div class="box">
+        <h3>🛠️ Titik Lokasi & Radius Login Siswa (Admin)</h3>
+        <p style="font-size:0.82rem;color:var(--muted);margin-bottom:12px;">
+          Siswa hanya dapat login & absen di halaman <code>absensi-siswa.html</code> jika berada di dalam radius titik ini.
+        </p>
+        <div class="form-group">
+          <label>Nama Titik Lokasi</label>
+          <input type="text" id="locNama" />
         </div>
-
-        <div class="box">
-          <h3>🔐 Login Siswa & Absensi Sesuai Lokasi</h3>
-          <p style="font-size:0.8rem;color:var(--muted);margin-bottom:10px;">
-            Masukkan NISN (misalnya <code>NSMA-001</code> atau <code>NSMA-002</code>).
-          </p>
+        <div class="form-row">
           <div class="form-group">
-            <label>NISN Siswa</label>
-            <input type="text" id="loginNisnInput" placeholder="NSMA-001" />
+            <label>Latitude</label>
+            <input type="number" step="any" id="locLat" />
           </div>
-          <div style="display:flex;flex-wrap:wrap;gap:8px;">
-            <button class="btn btn-success btn-sm" onclick="loginSiswaLokasi(false)">Login & Absen (GPS Asli)</button>
-            <button class="btn btn-warning btn-sm" onclick="loginSiswaLokasi(true)">Simulasi Di Luar Lokasi</button>
+          <div class="form-group">
+            <label>Longitude</label>
+            <input type="number" step="any" id="locLng" />
           </div>
-          <div id="hasilLoginSiswa" class="status-box">Belum ada percobaan login siswa.</div>
+          <div class="form-group">
+            <label>Radius Maksimal (meter)</label>
+            <input type="number" id="locRadius" min="10" />
+          </div>
         </div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;">
+          <button class="btn btn-primary btn-sm" onclick="simpanLokasi()">Simpan Lokasi Admin</button>
+          <button class="btn btn-outline btn-sm" onclick="pakaiLokasiSekarang()">Ambil GPS Perangkat</button>
+        </div>
+        <div id="infoLokasiAdmin" class="status-box"></div>
       </div>
     </section>
+  </div>
+
+  <!-- Modal Edit Histori Absen -->
+  <div class="modal-backdrop" id="editHistoriModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Edit Histori Absen</h3>
+        <button class="btn btn-outline btn-sm" onclick="closeEditModal()">✕</button>
+      </div>
+      <input type="hidden" id="editHistoriId" />
+      <div class="form-group">
+        <label>Siswa</label>
+        <input type="text" id="editHistoriSiswa" disabled />
+      </div>
+      <div class="form-group">
+        <label>Tanggal</label>
+        <input type="date" id="editHistoriTanggal" />
+      </div>
+      <div class="form-group">
+        <label>Sesi / Mata Pelajaran</label>
+        <input type="text" id="editHistoriMapel" />
+      </div>
+      <div class="form-group">
+        <label>Status Kehadiran</label>
+        <select id="editHistoriStatus">
+          <option value="Hadir">Hadir</option>
+          <option value="Izin">Izin</option>
+          <option value="Sakit">Sakit</option>
+          <option value="Alpha">Alpha</option>
+        </select>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline btn-sm" onclick="closeEditModal()">Batal</button>
+        <button class="btn btn-primary btn-sm" onclick="updateHistori()">Simpan Perubahan</button>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -266,6 +302,8 @@
 
     let db = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null') || structuredClone(defaultData);
     db = { ...defaultData, ...db, lokasiAdmin: { ...defaultData.lokasiAdmin, ...(db.lokasiAdmin || {}) } };
+    // Pastikan setiap histori memiliki id unik
+    db.absensi = (db.absensi || []).map((item, idx) => ({ id: item.id || (Date.now() + idx), ...item }));
 
     function persist() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
@@ -326,24 +364,30 @@
         const s = db.siswa.find(x => x.nisn === nisn);
         if (!s) return;
         db.absensi = db.absensi.filter(a => !(a.nisn === nisn && a.tanggal === tanggal && a.mapel === mapel));
-        db.absensi.unshift({ tanggal, nisn, nama: s.nama, kelas: s.kelas, mapel, status, sumber: 'Menu Absensi' });
+        db.absensi.unshift({
+          id: Date.now() + Math.random(),
+          tanggal, nisn, nama: s.nama, kelas: s.kelas, mapel, status, sumber: 'Admin'
+        });
       });
       alert('Absensi tersimpan ke Histori Absen.');
       persist();
     }
 
-    /* 2. Histori Absen */
-    function renderHistori() {
+    /* 2. Histori Absen (Filter, Edit, Hapus, Download Excel) */
+    function getFilteredHistori() {
       const q = document.getElementById('cariHistori').value.toLowerCase();
       const sts = document.getElementById('filterStatusAbsen').value;
-      const list = db.absensi.filter(a =>
+      return db.absensi.filter(a =>
         (!q || a.nisn.toLowerCase().includes(q) || a.nama.toLowerCase().includes(q)) &&
         (!sts || a.status === sts)
       );
+    }
 
+    function renderHistori() {
+      const list = getFilteredHistori();
       const body = document.getElementById('historiBody');
       if (!list.length) {
-        body.innerHTML = `<tr><td colspan="7" class="empty-state">Belum ada histori absen.</td></tr>`;
+        body.innerHTML = `<tr><td colspan="8" class="empty-state">Belum ada histori absen.</td></tr>`;
         return;
       }
 
@@ -360,9 +404,98 @@
             <td>${a.mapel}</td>
             <td><span class="badge ${cls}">${a.status}</span></td>
             <td>${a.sumber}</td>
+            <td>
+              <button class="btn btn-warning btn-sm" onclick="openEditHistori(${a.id})">Edit</button>
+              <button class="btn btn-danger btn-sm" onclick="hapusHistori(${a.id})">Hapus</button>
+            </td>
           </tr>
         `;
       }).join('');
+    }
+
+    function openEditHistori(id) {
+      const item = db.absensi.find(a => a.id === id);
+      if (!item) return;
+      document.getElementById('editHistoriId').value = item.id;
+      document.getElementById('editHistoriSiswa').value = `${item.nisn} - ${item.nama} (${item.kelas})`;
+      document.getElementById('editHistoriTanggal').value = item.tanggal;
+      document.getElementById('editHistoriMapel').value = item.mapel;
+      document.getElementById('editHistoriStatus').value = item.status;
+      document.getElementById('editHistoriModal').classList.add('open');
+    }
+
+    function closeEditModal() {
+      document.getElementById('editHistoriModal').classList.remove('open');
+    }
+
+    function updateHistori() {
+      const id = Number(document.getElementById('editHistoriId').value);
+      const item = db.absensi.find(a => a.id === id);
+      if (!item) return;
+      item.tanggal = document.getElementById('editHistoriTanggal').value;
+      item.mapel = document.getElementById('editHistoriMapel').value.trim() || item.mapel;
+      item.status = document.getElementById('editHistoriStatus').value;
+      item.sumber = 'Admin (Diedit)';
+      closeEditModal();
+      persist();
+    }
+
+    function hapusHistori(id) {
+      if (!confirm('Hapus data histori absen ini?')) return;
+      db.absensi = db.absensi.filter(a => a.id !== id);
+      persist();
+    }
+
+    function downloadHistoriExcel() {
+      const list = getFilteredHistori();
+      if (!list.length) return alert('Tidak ada data histori untuk diunduh.');
+
+      const rowsHtml = list.map(a => `
+        <tr>
+          <td>${a.tanggal}</td>
+          <td>${a.nisn}</td>
+          <td>${a.nama}</td>
+          <td>${a.kelas}</td>
+          <td>${a.mapel}</td>
+          <td>${a.status}</td>
+          <td>${a.sumber}</td>
+        </tr>
+      `).join('');
+
+      const excelTemplate = `
+        <html xmlns:o="urn:schemas-microsoft-com:office:office"
+              xmlns:x="urn:schemas-microsoft-com:office:excel"
+              xmlns="http://www.w3.org/TR/REC-html40">
+        <head><meta charset="UTF-8" /></head>
+        <body>
+          <table border="1">
+            <thead>
+              <tr>
+                <th>Tanggal</th>
+                <th>NISN</th>
+                <th>Nama Siswa</th>
+                <th>Kelas</th>
+                <th>Sesi / Mapel</th>
+                <th>Status</th>
+                <th>Sumber</th>
+              </tr>
+            </thead>
+            <tbody>${rowsHtml}</tbody>
+          </table>
+        </body>
+        </html>
+      `;
+
+      const blob = new Blob([excelTemplate], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      const today = new Date().toISOString().slice(0, 10);
+      link.href = url;
+      link.download = `histori-absensi-siswa-${today}.xls`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
     }
 
     /* 3. Rekap Nilai */
@@ -424,16 +557,7 @@
       }).join('');
     }
 
-    /* 4. Login Siswa & Validasi Titik Lokasi Admin */
-    function jarakMeter(lat1, lon1, lat2, lon2) {
-      const R = 6371000;
-      const rad = d => (d * Math.PI) / 180;
-      const dLat = rad(lat2 - lat1);
-      const dLon = rad(lon2 - lon1);
-      const a = Math.sin(dLat / 2) ** 2 + Math.cos(rad(lat1)) * Math.cos(rad(lat2)) * Math.sin(dLon / 2) ** 2;
-      return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    }
-
+    /* 4. Pengaturan Lokasi Admin */
     function renderLokasiAdmin() {
       const loc = db.lokasiAdmin;
       document.getElementById('locNama').value = loc.nama;
@@ -441,7 +565,7 @@
       document.getElementById('locLng').value = loc.lng;
       document.getElementById('locRadius').value = loc.radiusMeter;
       document.getElementById('infoLokasiAdmin').innerHTML = `
-        <strong>Lokasi Aktif:</strong> ${loc.nama}<br/>
+        <strong>Titik Lokasi Aktif:</strong> ${loc.nama}<br/>
         Koordinat: <code>${loc.lat}, ${loc.lng}</code> | Radius Maksimal: <strong>${loc.radiusMeter} meter</strong>
       `;
     }
@@ -452,10 +576,10 @@
       const lng = parseFloat(document.getElementById('locLng').value);
       const radiusMeter = parseFloat(document.getElementById('locRadius').value);
       if (isNaN(lat) || isNaN(lng) || isNaN(radiusMeter) || radiusMeter <= 0) {
-        return alert('Masukkan koordinat dan radius valid.');
+        return alert('Masukkan koordinat dan radius yang valid.');
       }
       db.lokasiAdmin = { nama, lat, lng, radiusMeter };
-      alert('Titik lokasi admin disimpan.');
+      alert('Titik lokasi admin berhasil disimpan.');
       persist();
     }
 
@@ -468,67 +592,6 @@
         },
         e => alert('Gagal mengambil GPS: ' + e.message),
         { enableHighAccuracy: true }
-      );
-    }
-
-    function loginSiswaLokasi(simulasiLuar) {
-      const nisn = document.getElementById('loginNisnInput').value.trim();
-      const out = document.getElementById('hasilLoginSiswa');
-      const s = db.siswa.find(x => x.nisn.toLowerCase() === nisn.toLowerCase());
-
-      if (!s) {
-        out.innerHTML = `<span class="badge badge-red">Login Gagal</span> NISN tidak terdaftar.`;
-        return;
-      }
-      if (s.status !== 'Siswa Aktif') {
-        out.innerHTML = `<span class="badge badge-yellow">Ditolak</span> Status bukan Siswa Aktif.`;
-        return;
-      }
-
-      const cekTitik = (uLat, uLng) => {
-        const t = db.lokasiAdmin;
-        const jarak = Math.round(jarakMeter(uLat, uLng, t.lat, t.lng));
-        if (jarak > t.radiusMeter) {
-          out.innerHTML = `
-            <span class="badge badge-red">Login & Absen Ditolak</span><br/>
-            <strong>${s.nama}</strong> (${s.nisn}) berada sejauh <strong>${jarak} m</strong> dari <em>${t.nama}</em>
-            (batas radius: <strong>${t.radiusMeter} m</strong>).
-          `;
-          return;
-        }
-
-        const today = new Date().toISOString().slice(0, 10);
-        const sudah = db.absensi.some(a => a.nisn === s.nisn && a.tanggal === today && a.sumber === 'Login Siswa');
-        if (!sudah) {
-          db.absensi.unshift({
-            tanggal: today, nisn: s.nisn, nama: s.nama, kelas: s.kelas,
-            mapel: 'Absensi Mandiri (Login Siswa)', status: 'Hadir', sumber: 'Login Siswa'
-          });
-          persist();
-        }
-
-        out.innerHTML = `
-          <span class="badge badge-green">Login & Absen Berhasil</span><br/>
-          Halo <strong>${s.nama}</strong> (${s.kelas}) • Jarak: <strong>${jarak} m</strong> (dalam radius ${t.radiusMeter} m).
-          Absensi tercatat di Histori Absen.
-        `;
-      };
-
-      if (simulasiLuar) {
-        cekTitik(db.lokasiAdmin.lat + 0.05, db.lokasiAdmin.lng + 0.05);
-        return;
-      }
-
-      if (!navigator.geolocation) {
-        out.innerHTML = `<span class="badge badge-red">Error</span> Browser tidak mendukung Geolocation.`;
-        return;
-      }
-
-      out.innerHTML = `Mengecek lokasi GPS...`;
-      navigator.geolocation.getCurrentPosition(
-        p => cekTitik(p.coords.latitude, p.coords.longitude),
-        e => { out.innerHTML = `<span class="badge badge-red">GPS Gagal</span> ${e.message}`; },
-        { enableHighAccuracy: true, timeout: 10000 }
       );
     }
 
