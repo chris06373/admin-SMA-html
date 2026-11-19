@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Portal Siswa - Login & Absensi Berbasis Lokasi</title>
+  <style>
+    :root {
+      --primary: #1d4ed8;
+      --primary-light: #eff6ff;
+      --success: #15803d;
+      --success-bg: #dcfce7;
+      --warning: #b45309;
+      --warning-bg: #fef3c7;
+      --danger: #b91c1c;
+      --danger-bg: #fee2e2;
+      --bg: #f4f6f9;
+      --card: #ffffff;
+      --text: #0f172a;
+      --muted: #64748b;
+      --border: #e2e8f0;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
+    body { background: var(--bg); color: var(--text); padding: 20px; }
+    .container { max-width: 680px; margin: 0 auto; }
+
+    .top-header {
+      display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center;
+      gap: 12px; margin-bottom: 18px;
+    }
+    .brand h1 { font-size: 1.4rem; color: var(--primary); }
+    .brand p { font-size: 0.84rem; color: var(--muted); margin-top: 2px; }
+
+    .btn {
+      border: none; border-radius: 8px; padding: 9px 14px; font-size: 0.86rem;
+      font-weight: 600; cursor: pointer; text-decoration: none;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn-success { background: var(--success); color: #fff; }
+    .btn-warning { background: #f59e0b; color: #fff; }
+    .btn-outline { background: #fff; color: var(--text); border: 1px solid var(--border); }
+
+    .card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+      padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .card h2 { font-size: 1.1rem; margin-bottom: 6px; }
+    .desc { font-size: 0.84rem; color: var(--muted); margin-bottom: 14px; }
+
+    .form-group { display: flex; flex-direction: column; gap: 5px; margin-bottom: 14px; }
+    .form-group label { font-size: 0.8rem; font-weight: 600; color: var(--muted); }
+    input {
+      padding: 9px 12px; border: 1px solid var(--border); border-radius: 8px;
+      font-size: 0.9rem; background: #fff; color: var(--text);
+    }
+
+    .actions { display: flex; flex-wrap: wrap; gap: 8px; }
+    .status-box {
+      padding: 12px 14px; border-radius: 8px; font-size: 0.85rem;
+      margin-top: 14px; border: 1px solid var(--border); background: #f8fafc;
+      line-height: 1.5;
+    }
+    .badge { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 0.74rem; font-weight: 700; margin-bottom: 4px; }
+    .badge-green { background: var(--success-bg); color: var(--success); }
+    .badge-yellow { background: var(--warning-bg); color: var(--warning); }
+    .badge-red { background: var(--danger-bg); color: var(--danger); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="top-header">
+      <div class="brand">
+        <h1>🎓 Halaman Login & Absensi Siswa</h1>
+        <p>Khusus Siswa: Login hanya diizinkan sesuai titik lokasi yang ditentukan Admin</p>
+      </div>
+      <a href="index.html" class="btn btn-outline">← Beranda</a>
+    </div>
+
+    <div class="card">
+      <h2>Login Siswa</h2>
+      <p class="desc">
+        Masukkan NISN siswa aktif (contoh: <code>NSMA-001</code> atau <code>NSMA-002</code>). Sistem akan memverifikasi posisi lokasi Anda terhadap titik lokasi Admin.
+      </p>
+
+      <div class="form-group">
+        <label>NISN Siswa</label>
+        <input type="text" id="nisnInput" placeholder="Masukkan NISN Anda (cth: NSMA-001)" />
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-success" onclick="prosesLoginSiswa(false)">Login & Absen (Lokasi GPS)</button>
+        <button class="btn btn-warning" onclick="prosesLoginSiswa(true)">Uji Coba Di Luar Lokasi</button>
+      </div>
+
+      <div id="infoLokasiTarget" class="status-box"></div>
+      <div id="hasilLogin" class="status-box">Menunggu proses login siswa...</div>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = 'sma_admin_dev_v1';
+    const defaultData = {
+      siswa: [
+        { nisn: 'NSMA-001', nama: 'Jane', kelas: 'Kelas X', jurusan: 'MIPA', status: 'Siswa Aktif', totalBayar: 300000 },
+        { nisn: 'NSMA-002', nama: 'Budi Jaya', kelas: 'Kelas XII', jurusan: 'IPS', status: 'Siswa Aktif', totalBayar: 250000 }
+      ],
+      pembayaran: [],
+      absensi: [],
+      nilai: [],
+      lokasiAdmin: { nama: 'SMA Negeri Contoh - Kampus Utama', lat: -6.175392, lng: 106.827153, radiusMeter: 150 }
+    };
+
+    function getDb() {
+      const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null') || structuredClone(defaultData);
+      return { ...defaultData, ...raw, lokasiAdmin: { ...defaultData.lokasiAdmin, ...(raw.lokasiAdmin || {}) } };
+    }
+
+    function saveDb(db) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+    }
+
+    function renderInfoLokasi() {
+      const loc = getDb().lokasiAdmin;
+      document.getElementById('infoLokasiTarget').innerHTML = `
+        <strong>Titik Lokasi Admin:</strong> ${loc.nama}<br/>
+        Koordinat: <code>${loc.lat}, ${loc.lng}</code> | Radius Diizinkan: <strong>${loc.radiusMeter} meter</strong>
+      `;
+    }
+
+    function jarakMeter(lat1, lon1, lat2, lon2) {
+      const R = 6371000;
+      const rad = d => (d * Math.PI) / 180;
+      const dLat = rad(lat2 - lat1);
+      const dLon = rad(lon2 - lon1);
+      const a = Math.sin(dLat / 2) ** 2 + Math.cos(rad(lat1)) * Math.cos(rad(lat2)) * Math.sin(dLon / 2) ** 2;
+      return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    }
+
+    function prosesLoginSiswa(simulasiLuar) {
+      const db = getDb();
+      const nisn = document.getElementById('nisnInput').value.trim();
+      const out = document.getElementById('hasilLogin');
+      const s = db.siswa.find(x => x.nisn.toLowerCase() === nisn.toLowerCase());
+
+      if (!s) {
+        out.innerHTML = `<span class="badge badge-red">Login Gagal</span><br/>NISN <strong>${nisn || '-'}</strong> tidak terdaftar.`;
+        return;
+      }
+      if (s.status !== 'Siswa Aktif') {
+        out.innerHTML = `<span class="badge badge-yellow">Akses Ditolak</span><br/>Status akun bukan Siswa Aktif.`;
+        return;
+      }
+
+      const verifikasiLokasi = (uLat, uLng) => {
+        const target = db.lokasiAdmin;
+        const jarak = Math.round(jarakMeter(uLat, uLng, target.lat, target.lng));
+
+        if (jarak > target.radiusMeter) {
+          out.innerHTML = `
+            <span class="badge badge-red">Login & Absen Ditolak</span><br/>
+            Halo <strong>${s.nama}</strong> (${s.nisn}), jarak Anda <strong>${jarak} meter</strong> dari <em>${target.nama}</em>.
+            Login hanya diizinkan dalam radius <strong>${target.radiusMeter} meter</strong>.
+          `;
+          return;
+        }
+
+        const today = new Date().toISOString().slice(0, 10);
+        const sudah = db.absensi.some(a => a.nisn === s.nisn && a.tanggal === today && a.sumber === 'Login Siswa');
+        if (!sudah) {
+          db.absensi.unshift({
+            id: Date.now(),
+            tanggal: today,
+            nisn: s.nisn,
+            nama: s.nama,
+            kelas: s.kelas,
+            mapel: 'Absensi Mandiri (Login Siswa)',
+            status: 'Hadir',
+            sumber: 'Login Siswa'
+          });
+          saveDb(db);
+        }
+
+        out.innerHTML = `
+          <span class="badge badge-green">Login & Absen Berhasil</span><br/>
+          Selamat datang, <strong>${s.nama}</strong> (${s.kelas}) • Jarak: <strong>${jarak} meter</strong> (dalam radius ${target.radiusMeter} m).<br/>
+          Kehadiran Anda hari ini sudah tercatat di Histori Absen Admin.
+        `;
+      };
+
+      if (simulasiLuar) {
+        verifikasiLokasi(db.lokasiAdmin.lat + 0.05, db.lokasiAdmin.lng + 0.05);
+        return;
+      }
+
+      if (!navigator.geolocation) {
+        out.innerHTML = `<span class="badge badge-red">Error</span><br/>Browser tidak mendukung Geolocation.`;
+        return;
+      }
+
+      out.innerHTML = `Memeriksa koordinat GPS Anda...`;
+      navigator.geolocation.getCurrentPosition(
+        pos => verifikasiLokasi(pos.coords.latitude, pos.coords.longitude),
+        err => {
+          out.innerHTML = `<span class="badge badge-red">GPS Gagal</span><br/>${err.message}. Aktifkan izin lokasi browser.`;
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    }
+
+    renderInfoLokasi();
+  </script>
+</body>
+</html>
